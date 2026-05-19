@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام تسيير الطلاب</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --primary: #1a1f3a;
+    --secondary: #2d3561;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --accent3: #43e97b;
+    --gold: #f7971e;
+    --danger: #ff4757;
+    --warning: #ffa502;
+    --success: #2ed573;
+    --info: #1e90ff;
+    --bg: #f0f2ff;
+    --card: #ffffff;
+    --text: #1a1f3a;
+    --muted: #6b7299;
+    --border: rgba(108,99,255,0.15);
+    --shadow: 0 8px 32px rgba(108,99,255,0.12);
+    --shadow-hover: 0 16px 48px rgba(108,99,255,0.22);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    direction: rtl;
+  }
+  /* ===== TOAST ===== */
+  #toast-container {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    z-index: 9999; display: flex; flex-direction: column; gap: 8px; align-items: center;
+  }
+  .toast {
+    background: var(--primary); color: #fff;
+    padding: 12px 24px; border-radius: 50px;
+    font-size: 14px; font-weight: 500;
+    animation: slideUp .3s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    white-space: nowrap;
+  }
+  .toast.success { background: var(--success); color: #fff; }
+  .toast.danger { background: var(--danger); }
+  .toast.warning { background: var(--warning); color: #1a1f3a; }
+  @keyframes slideUp { from { opacity:0; transform:translateY(20px);} to { opacity:1; transform:translateY(0);} }
+
+  /* ===== SCREENS ===== */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; }
+
+  /* ===== AUTH SCREEN ===== */
+  #auth-screen {
+    background: linear-gradient(135deg, #1a1f3a 0%, #2d3561 50%, #1a1f3a 100%);
+    align-items: center; justify-content: center; position: relative; overflow: hidden;
+  }
+  #auth-screen::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(108,99,255,0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255,101,132,0.2) 0%, transparent 40%),
+                radial-gradient(circle at 60% 80%, rgba(67,233,123,0.15) 0%, transparent 40%);
+  }
+  .auth-box {
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 24px;
+    padding: 3rem;
+    width: 420px;
+    max-width: 95vw;
+    position: relative; z-index: 1;
+  }
+  .auth-logo { text-align: center; margin-bottom: 2rem; }
+  .auth-logo .logo-icon {
+    width: 72px; height: 72px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 20px; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 32px; color: #fff; margin-bottom: 1rem;
+    box-shadow: 0 8px 32px rgba(108,99,255,0.5);
+  }
+  .auth-logo h1 { color: #fff; font-size: 22px; font-weight: 700; }
+  .auth-logo p { color: rgba(255,255,255,0.6); font-size: 13px; margin-top: 4px; }
+  .auth-tabs {
+    display: flex; background: rgba(255,255,255,0.08);
+    border-radius: var(--radius-sm); padding: 4px; margin-bottom: 1.5rem;
+  }
+  .auth-tab {
+    flex: 1; text-align: center; padding: 8px; border-radius: 7px;
+    color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all .25s;
+  }
+  .auth-tab.active { background: var(--accent); color: #fff; }
+  .form-group { margin-bottom: 1rem; }
+  .form-group label { display: block; color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+  .form-group input, .form-group select {
+    width: 100%; padding: 12px 16px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius-sm); color: #fff; font-family: 'Cairo',sans-serif;
+    font-size: 14px; outline: none; transition: border .2s;
+  }
+  .form-group input::placeholder { color: rgba(255,255,255,0.3); }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-group select option { background: #2d3561; color: #fff; }
+  .btn-primary {
+    width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border: none; border-radius: var(--radius-sm); color: #fff;
+    font-family: 'Cairo',sans-serif; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all .25s; margin-top: 0.5rem;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(108,99,255,0.5); }
+
+  /* ===== APP LAYOUT ===== */
+  #app-screen { flex-direction: row; }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: 260px; min-height: 100vh;
+    background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+    padding: 1.5rem 0;
+    display: flex; flex-direction: column;
+    position: fixed; right: 0; top: 0; bottom: 0;
+    z-index: 100;
+    box-shadow: -4px 0 30px rgba(0,0,0,0.2);
+  }
+  .sidebar-logo {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 1.5rem 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 1rem;
+  }
+  .sidebar-logo .logo-icon {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: #fff; flex-shrink: 0;
+  }
+  .sidebar-logo span { color: #fff; font-size: 14px; font-weight: 700; }
+  .sidebar-user {
+    padding: 0 1rem 1rem; margin-bottom: 0.5rem;
+  }
+  .user-card {
+    background: rgba(255,255,255,0.08); border-radius: 12px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .user-avatar {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #fff;
+  }
+  .user-info span { display: block; }
+  .user-name { color: #fff; font-size: 13px; font-weight: 600; }
+  .user-role { color: rgba(255,255,255,0.5); font-size: 11px; }
+  .nav-section-title {
+    color: rgba(255,255,255,0.3); font-size: 10px; font-weight: 700;
+    letter-spacing: 1.5px; padding: 0 1.5rem; margin: 0.75rem 0 0.25rem;
+    text-transform: uppercase;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 1.5rem; margin: 2px 0.75rem;
+    border-radius: 10px; cursor: pointer; transition: all .2s;
+    color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .nav-item.active { background: var(--accent); color: #fff; }
+  .nav-item .nav-icon { width: 20px; text-align: center; font-size: 15px; }
+  .nav-item .nav-badge {
+    margin-right: auto; background: var(--danger); color: #fff;
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+  }
+  .sidebar-footer {
+    margin-top: auto; padding: 1rem;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .logout-btn {
+    width: 100%; display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; background: rgba(255,71,87,0.15);
+    border: 1px solid rgba(255,71,87,0.25); border-radius: 10px;
+    color: var(--danger); font-family: 'Cairo',sans-serif;
+    font-size: 13px; cursor: pointer; transition: all .2s;
+  }
+  .logout-btn:hover { background: rgba(255,71,87,0.25); }
+
+  /* ===== MAIN CONTENT ===== */
+  .main-content {
+    margin-right: 260px; flex: 1;
+    padding: 2rem;
+    min-height: 100vh;
+  }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+  .page-title { font-size: 24px; font-weight: 700; }
+  .page-subtitle { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--card); border-radius: var(--radius);
+    border: 1px solid var(--border); padding: 1.5rem;
+    box-shadow: var(--shadow);
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+  .card-title { font-size: 15px; font-weight: 700; }
+
+  /* ===== STAT CARDS ===== */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: var(--card); border-radius: var(--radius);
+    border: 1px solid var(--border); padding: 1.25rem;
+    box-shadow: var(--shadow); transition: all .25s;
+    position: relative; overflow: hidden;
+  }
+  .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+  .stat-card::before {
+    content: ''; position: absolute; bottom: -20px; left: -20px;
+    width: 80px; height: 80px; border-radius: 50%;
+    opacity: 0.08;
+  }
+  .stat-card.blue::before { background: var(--info); }
+  .stat-card.purple::before { background: var(--accent); }
+  .stat-card.green::before { background: var(--success); }
+  .stat-card.red::before { background: var(--danger); }
+  .stat-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; margin-bottom: 0.75rem;
+  }
+  .stat-icon.blue { background: rgba(30,144,255,0.12); color: var(--info); }
+  .stat-icon.purple { background: rgba(108,99,255,0.12); color: var(--accent); }
+  .stat-icon.green { background: rgba(46,213,115,0.12); color: var(--success); }
+  .stat-icon.red { background: rgba(255,71,87,0.12); color: var(--danger); }
+  .stat-value { font-size: 28px; font-weight: 700; }
+  .stat-label { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  /* ===== TASK CARDS ===== */
+  .tasks-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+  }
+  .task-card {
+    background: var(--card); border-radius: var(--radius);
+    border: 1px solid var(--border); padding: 1.25rem;
+    box-shadow: var(--shadow); transition: all .25s;
+    position: relative; overflow: hidden;
+  }
+  .task-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+  .task-card.expired { border-color: rgba(255,71,87,0.3); }
+  .task-card.completed-by-me { border-color: rgba(46,213,115,0.4); }
+  .task-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+  .task-subject {
+    font-size: 11px; font-weight: 600; padding: 4px 10px;
+    border-radius: 20px; display: inline-block;
+  }
+  .task-priority { font-size: 11px; }
+  .task-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .task-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .task-timer {
+    margin: 1rem 0; background: #f8f9ff;
+    border-radius: 10px; padding: 10px 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .timer-digits {
+    font-size: 22px; font-weight: 700; font-family: 'Tajawal', sans-serif;
+    letter-spacing: 2px;
+  }
+  .timer-digits.urgent { color: var(--danger); animation: pulse 1s infinite; }
+  .timer-digits.warning { color: var(--warning); }
+  .timer-digits.ok { color: var(--success); }
+  .timer-digits.expired { color: var(--muted); }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+  .task-footer { display: flex; gap: 8px; margin-top: 1rem; align-items: center; }
+  .btn-done {
+    flex: 1; padding: 10px; background: linear-gradient(135deg, var(--success), #20bf6b);
+    border: none; border-radius: 10px; color: #fff;
+    font-family: 'Cairo',sans-serif; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all .25s; display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-done:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(46,213,115,0.4); }
+  .btn-done:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+  .done-badge {
+    flex: 1; padding: 10px; background: rgba(46,213,115,0.1);
+    border: 1px solid rgba(46,213,115,0.3); border-radius: 10px;
+    color: var(--success); font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .completions-count {
+    font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .frozen-overlay {
+    position: absolute; inset: 0; background: rgba(255,255,255,0.92);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border-radius: var(--radius); z-index: 2;
+  }
+  .frozen-overlay i { font-size: 36px; color: var(--muted); margin-bottom: 8px; }
+  .frozen-overlay p { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+  /* ===== SUBJECT TABS ===== */
+  .subjects-tabs {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.5rem;
+  }
+  .subject-tab {
+    padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all .2s; border: 1.5px solid var(--border);
+    color: var(--muted); background: var(--card);
+  }
+  .subject-tab:hover { border-color: var(--accent); color: var(--accent); }
+  .subject-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ===== SUBJECT COLORS ===== */
+  .s-math { background: rgba(30,144,255,0.1); color: #1e90ff; }
+  .s-physics { background: rgba(108,99,255,0.1); color: var(--accent); }
+  .s-chemistry { background: rgba(255,101,132,0.1); color: var(--accent2); }
+  .s-biology { background: rgba(46,213,115,0.1); color: var(--success); }
+  .s-arabic { background: rgba(247,151,30,0.1); color: var(--gold); }
+  .s-french { background: rgba(0,206,209,0.1); color: #00ced1; }
+  .s-english { background: rgba(138,43,226,0.1); color: blueviolet; }
+  .s-history { background: rgba(210,105,30,0.1); color: chocolate; }
+  .s-geo { background: rgba(34,139,34,0.1); color: forestgreen; }
+  .s-philosophy { background: rgba(128,0,128,0.1); color: purple; }
+  .s-sport { background: rgba(255,165,0,0.1); color: orange; }
+
+  /* ===== LISTS ===== */
+  .student-list { display: flex; flex-direction: column; gap: 8px; }
+  .student-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 14px;
+    transition: all .2s;
+  }
+  .student-item:hover { border-color: var(--accent); }
+  .s-avatar {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+  }
+  .s-name { font-size: 14px; font-weight: 600; }
+  .s-meta { font-size: 11px; color: var(--muted); }
+  .s-badges { margin-right: auto; display: flex; gap: 6px; }
+  .badge {
+    font-size: 11px; font-weight: 600; padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .badge-success { background: rgba(46,213,115,0.1); color: var(--success); }
+  .badge-danger { background: rgba(255,71,87,0.12); color: var(--danger); }
+  .badge-warning { background: rgba(255,165,2,0.12); color: var(--warning); }
+  .badge-muted { background: rgba(107,114,153,0.1); color: var(--muted); }
+  .badge-frozen { background: rgba(30,144,255,0.1); color: var(--info); }
+
+  /* ===== ACTIONS ===== */
+  .action-btn {
+    padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; border: none; font-family: 'Cairo',sans-serif; transition: all .2s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .action-btn.danger { background: rgba(255,71,87,0.1); color: var(--danger); }
+  .action-btn.danger:hover { background: var(--danger); color: #fff; }
+  .action-btn.success { background: rgba(46,213,115,0.1); color: var(--success); }
+  .action-btn.success:hover { background: var(--success); color: #fff; }
+  .action-btn.info { background: rgba(30,144,255,0.1); color: var(--info); }
+  .action-btn.info:hover { background: var(--info); color: #fff; }
+  .action-btn.warning { background: rgba(255,165,2,0.1); color: var(--warning); }
+  .action-btn.warning:hover { background: var(--warning); color: #fff; }
+
+  /* ===== CREATE TASK FORM ===== */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-field { margin-bottom: 0; }
+  .form-field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+  .form-field input, .form-field select, .form-field textarea {
+    width: 100%; padding: 10px 14px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-family: 'Cairo',sans-serif; font-size: 13px; color: var(--text);
+    outline: none; transition: border .2s; background: #f8f9ff;
+  }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+    border-color: var(--accent); background: #fff;
+  }
+  .form-field textarea { resize: vertical; min-height: 80px; }
+  .form-full { grid-column: 1/-1; }
+  .btn-create {
+    padding: 12px 28px; background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border: none; border-radius: 10px; color: #fff;
+    font-family: 'Cairo',sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all .25s; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-create:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(108,99,255,0.4); }
+
+  /* ===== WARNINGS TABLE ===== */
+  .warnings-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .warnings-table th {
+    text-align: right; padding: 10px 14px;
+    font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.5px;
+    background: #f8f9ff; border-bottom: 1px solid var(--border);
+  }
+  .warnings-table td { padding: 12px 14px; border-bottom: 1px solid rgba(108,99,255,0.06); font-size: 13px; }
+  .warnings-table tr:last-child td { border-bottom: none; }
+  .warnings-table tr:hover td { background: #f8f9ff; }
+
+  /* ===== LEADERBOARD ===== */
+  .leaderboard { display: flex; flex-direction: column; gap: 8px; }
+  .lb-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 12px;
+  }
+  .lb-rank {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .lb-rank.gold { background: linear-gradient(135deg, #f7971e, #ffd200); color: #fff; }
+  .lb-rank.silver { background: linear-gradient(135deg, #bdc3c7, #ecf0f1); color: #555; }
+  .lb-rank.bronze { background: linear-gradient(135deg, #cd7f32, #d4a666); color: #fff; }
+  .lb-rank.other { background: rgba(108,99,255,0.1); color: var(--accent); }
+  .lb-score { margin-right: auto; font-size: 15px; font-weight: 700; color: var(--accent); }
+  .lb-bar {
+    width: 100%; height: 4px; background: rgba(108,99,255,0.1);
+    border-radius: 4px; overflow: hidden; margin-top: 4px;
+  }
+  .lb-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; transition: width .5s; }
+
+  /* ===== PROFILE PAGE ===== */
+  .profile-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: var(--radius); padding: 2rem; color: #fff;
+    display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+  }
+  .profile-header::before {
+    content: ''; position: absolute;
+    top: -40px; left: -40px; width: 150px; height: 150px;
+    border-radius: 50%; background: rgba(108,99,255,0.2);
+  }
+  .profile-avatar {
+    width: 72px; height: 72px; border-radius: 18px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 700; color: #fff; flex-shrink: 0;
+    position: relative; z-index: 1;
+  }
+  .profile-info { position: relative; z-index: 1; }
+  .profile-info h2 { font-size: 22px; font-weight: 700; }
+  .profile-info p { opacity: 0.7; font-size: 13px; margin-top: 4px; }
+  .profile-stats {
+    display: flex; gap: 2rem; margin-top: 1rem;
+  }
+  .profile-stat { text-align: center; }
+  .profile-stat .val { font-size: 22px; font-weight: 700; }
+  .profile-stat .lbl { font-size: 11px; opacity: 0.6; }
+
+  /* ===== NOTIFICATION PANEL ===== */
+  .notif-list { display: flex; flex-direction: column; gap: 8px; }
+  .notif-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 12px;
+    transition: all .2s;
+  }
+  .notif-item:hover { border-color: var(--accent); }
+  .notif-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .notif-text { font-size: 13px; }
+  .notif-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ===== SCHEDULE ===== */
+  .schedule-grid {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+  }
+  .schedule-day { text-align: center; }
+  .schedule-day-name {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    padding: 6px; border-radius: 8px; margin-bottom: 6px;
+  }
+  .schedule-slot {
+    padding: 8px 6px; border-radius: 8px; font-size: 11px;
+    margin-bottom: 6px; font-weight: 600; text-align: center;
+  }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(26,31,58,0.6); backdrop-filter: blur(4px);
+    z-index: 200; align-items: center; justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--card); border-radius: 20px;
+    padding: 2rem; width: 500px; max-width: 95vw;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.2); position: relative;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 1.5rem; }
+  .modal-close {
+    position: absolute; top: 1.25rem; left: 1.25rem;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--bg); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--muted); transition: all .2s;
+  }
+  .modal-close:hover { background: var(--danger); color: #fff; }
+
+  /* ===== TWO COL LAYOUT ===== */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+  /* ===== EMPTY STATE ===== */
+  .empty-state { text-align: center; padding: 3rem; color: var(--muted); }
+  .empty-state i { font-size: 48px; opacity: 0.3; display: block; margin-bottom: 1rem; }
+  .empty-state p { font-size: 14px; }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(108,99,255,0.2); border-radius: 4px; }
+
+  /* ===== PROGRESS BAR ===== */
+  .progress { height: 6px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width .5s; }
+
+  .gap-8 { display: flex; flex-direction: column; gap: 8px; }
+  .mt-1 { margin-top: 1rem; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+
+  
+  /* ===== USER TASK + SUBJECT IMAGES ===== */
+  .subject-image-card{
+    background: var(--card);
+    border:1px solid var(--border);
+    border-radius: var(--radius);
+    padding:1rem;
+    margin-bottom:1rem;
+    box-shadow: var(--shadow);
+  }
+  .image-actions{
+    display:flex;
+    gap:10px;
+    margin-top:12px;
+  }
+  .preview-image{
+    width:100%;
+    max-height:260px;
+    object-fit:cover;
+    border-radius:14px;
+    margin-top:14px;
+    display:none;
+    border:1px solid var(--border);
+  }
+  .task-user-box{
+    margin-top:1.5rem;
+  }
+
+
+  @media (max-width: 768px) {
+    .sidebar { width: 220px; }
+    .main-content { margin-right: 220px; padding: 1rem; }
+    .two-col, .three-col, .form-grid { grid-template-columns: 1fr; }
+    .tasks-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<!-- ========================= AUTH SCREEN ========================= -->
+<div id="auth-screen" class="screen active">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+      <h1>نظام تسيير الطلاب</h1>
+      <p>منصة إدارة المهام الدراسية</p>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')">تسجيل الدخول</div>
+      <div class="auth-tab" onclick="switchAuthTab('register')">حساب جديد</div>
+    </div>
+    <div id="login-form">
+      <div class="form-group">
+        <label>البريد الإلكتروني</label>
+        <input type="text" id="login-email" placeholder="أدخل بريدك الإلكتروني">
+      </div>
+      <div class="form-group">
+        <label>كلمة المرور</label>
+        <input type="password" id="login-pass" placeholder="أدخل كلمة المرور">
+      </div>
+      <button class="btn-primary" onclick="doLogin()">
+        <i class="fas fa-sign-in-alt"></i> دخول
+      </button>
+      <p style="text-align:center;margin-top:12px;color:rgba(255,255,255,0.4);font-size:12px;">
+        للتجربة: admin@school.dz / 1234 &nbsp;|&nbsp; أو سجّل حساباً جديداً
+      </p>
+    </div>
+    <div id="register-form" style="display:none">
+      <div class="form-group">
+        <label>الاسم الكامل</label>
+        <input type="text" id="reg-name" placeholder="اسمك الكامل">
+      </div>
+      <div class="form-group">
+        <label>البريد الإلكتروني</label>
+        <input type="text" id="reg-email" placeholder="بريدك الإلكتروني">
+      </div>
+      <div class="form-group">
+        <label>كلمة المرور</label>
+        <input type="password" id="reg-pass" placeholder="كلمة مرور قوية">
+      </div>
+      <div class="form-group">
+        <label>القسم / المستوى</label>
+        <select id="reg-class">
+          <option>السنة الأولى ثانوي</option>
+          <option>السنة الثانية ثانوي</option>
+          <option>السنة الثالثة ثانوي</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="doRegister()">
+        <i class="fas fa-user-plus"></i> إنشاء الحساب
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================= APP SCREEN ========================= -->
+<div id="app-screen" class="screen">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+      <span>StudyTrack Pro</span>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-card">
+        <div class="user-avatar" id="sidebar-avatar">ط</div>
+        <div class="user-info">
+          <span class="user-name" id="sidebar-name">الطالب</span>
+          <span class="user-role" id="sidebar-role">طالب</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-section-title">الرئيسية</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <span class="nav-icon"><i class="fas fa-th-large"></i></span> لوحة التحكم
+    </div>
+    <div class="nav-item" onclick="showPage('tasks')">
+      <span class="nav-icon"><i class="fas fa-tasks"></i></span> المهام الدراسية
+      <span class="nav-badge" id="tasks-badge">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('subjects')">
+      <span class="nav-icon"><i class="fas fa-book-open"></i></span> المواد الدراسية
+    </div>
+    <div class="nav-item" onclick="showPage('schedule')">
+      <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span> الجدول الأسبوعي
+    </div>
+
+    <div class="nav-section-title">إجتماعي</div>
+    <div class="nav-item" onclick="showPage('leaderboard')">
+      <span class="nav-icon"><i class="fas fa-trophy"></i></span> لوحة الشرف
+    </div>
+    <div class="nav-item" onclick="showPage('notifications')">
+      <span class="nav-icon"><i class="fas fa-bell"></i></span> الإشعارات
+      <span class="nav-badge" id="notif-badge">3</span>
+    </div>
+
+    <div id="admin-nav" style="display:none">
+      <div class="nav-section-title">المالك / الأستاذ</div>
+      <div class="nav-item" onclick="showPage('create-task')">
+        <span class="nav-icon"><i class="fas fa-plus-circle"></i></span> إنشاء مهمة
+      </div>
+      <div class="nav-item" onclick="showPage('students')">
+        <span class="nav-icon"><i class="fas fa-users"></i></span> إدارة الطلاب
+      </div>
+      <div class="nav-item" onclick="showPage('warnings')">
+        <span class="nav-icon"><i class="fas fa-exclamation-triangle"></i></span> الإنذارات
+        <span class="nav-badge" id="warn-badge">0</span>
+      </div>
+    </div>
+
+    <div class="nav-section-title">الحساب</div>
+    <div class="nav-item" onclick="showPage('profile')">
+      <span class="nav-icon"><i class="fas fa-user-circle"></i></span> ملفي الشخصي
+    </div>
+    <div class="nav-item" onclick="showPage('settings')">
+      <span class="nav-icon"><i class="fas fa-cog"></i></span> الإعدادات
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="doLogout()">
+        <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- ====== DASHBOARD ====== -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title" id="dash-greeting">أهلاً 👋</div>
+          <div class="page-subtitle">إليك ملخص اليوم الدراسي</div>
+        </div>
+        <div id="current-date" style="font-size:13px;color:var(--muted)"></div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-icon blue"><i class="fas fa-tasks"></i></div>
+          <div class="stat-value" id="stat-total-tasks">0</div>
+          <div class="stat-label">إجمالي المهام</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+          <div class="stat-value" id="stat-completed">0</div>
+          <div class="stat-label">المهام المنجزة</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-icon red"><i class="fas fa-clock"></i></div>
+          <div class="stat-value" id="stat-active">0</div>
+          <div class="stat-label">مهام نشطة</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon purple"><i class="fas fa-exclamation-triangle"></i></div>
+          <div class="stat-value" id="stat-my-warns">0</div>
+          <div class="stat-label">إنذاراتي</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📌 آخر المهام</div>
+            <button class="action-btn info" onclick="showPage('tasks')">عرض الكل</button>
+          </div>
+          <div id="dash-tasks-list" class="gap-8"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🏆 أفضل الطلاب</div>
+          </div>
+          <div id="dash-leaderboard" class="leaderboard"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== TASKS PAGE ====== -->
+    <div class="page" id="page-tasks">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📚 المهام الدراسية</div>
+          <div class="page-subtitle">جميع المهام المتاحة لك</div>
+        </div>
+      </div>
+      <div class="subjects-tabs" id="task-subject-tabs">
+        <div class="subject-tab active" onclick="filterTasksBySubject('all',this)">الكل</div>
+      </div>
+
+      <div class="card task-user-box">
+        <div class="card-header">
+          <div class="card-title">➕ إضافة مهمة شخصية</div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-field form-full">
+            <label>عنوان المهمة</label>
+            <input type="text" id="user-task-title" placeholder="اكتب عنوان المهمة">
+          </div>
+
+          <div class="form-field form-full">
+            <label>وصف المهمة</label>
+            <textarea id="user-task-desc" placeholder="تفاصيل المهمة"></textarea>
+          </div>
+
+          <div class="form-field">
+            <label>المادة</label>
+            <select id="user-task-subject">
+              <option value="math">الرياضيات</option>
+              <option value="physics">الفيزياء</option>
+              <option value="chemistry">الكيمياء</option>
+              <option value="biology">العلوم الطبيعية</option>
+              <option value="arabic">اللغة العربية</option>
+              <option value="french">اللغة الفرنسية</option>
+              <option value="english">اللغة الإنجليزية</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>المدة اللازمة لإنهاء المهمة (بالدقائق)</label>
+            <input type="number" id="user-task-duration" min="5" value="30">
+          </div>
+
+          <div class="form-full" style="display:flex;justify-content:flex-end;margin-top:10px">
+            <button class="btn-create" onclick="createPersonalTask()">
+              <i class="fas fa-plus"></i> إضافة المهمة
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tasks-grid" id="tasks-grid"></div>
+    </div>
+
+    <!-- ====== SUBJECTS PAGE ====== -->
+    <div class="page" id="page-subjects">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📖 المواد الدراسية</div>
+          <div class="page-subtitle">تابع تقدمك في كل مادة</div>
+        </div>
+      </div>
+      
+      <div class="subject-image-card">
+        <div class="card-title">🖼️ إضافة صورة للمادة</div>
+
+        <div class="form-grid" style="margin-top:1rem">
+          <div class="form-field">
+            <label>اختر المادة</label>
+            <select id="subject-image-select">
+              <option value="math">الرياضيات</option>
+              <option value="physics">الفيزياء</option>
+              <option value="chemistry">الكيمياء</option>
+              <option value="biology">العلوم الطبيعية</option>
+              <option value="arabic">اللغة العربية</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>اختر الصورة</label>
+            <input type="file" id="subject-image-input" accept="image/*">
+          </div>
+        </div>
+
+        <div class="image-actions">
+          <button class="btn-create" onclick="saveSubjectImage()">
+            <i class="fas fa-save"></i> حفظ الصورة
+          </button>
+
+          <button class="btn-create" onclick="showSubjectImage()" style="background:linear-gradient(135deg,var(--info),#54a0ff)">
+            <i class="fas fa-image"></i> عرض الصورة
+          </button>
+        </div>
+
+        <img id="subject-preview-image" class="preview-image">
+      </div>
+
+      <div id="subjects-content"></div>
+
+    </div>
+
+    <!-- ====== SCHEDULE PAGE ====== -->
+    <div class="page" id="page-schedule">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📅 الجدول الأسبوعي</div>
+          <div class="page-subtitle">توزيع الحصص للأسبوع الدراسي</div>
+        </div>
+      </div>
+      <div class="card">
+        <div id="schedule-content"></div>
+      </div>
+    </div>
+
+    <!-- ====== LEADERBOARD PAGE ====== -->
+    <div class="page" id="page-leaderboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🏆 لوحة الشرف</div>
+          <div class="page-subtitle">الطلاب الأكثر إنجازاً</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem">🥇 ترتيب الإنجاز</div>
+          <div id="lb-list" class="leaderboard"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem">📊 إحصائيات عامة</div>
+          <div id="lb-stats"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== NOTIFICATIONS ====== -->
+    <div class="page" id="page-notifications">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🔔 الإشعارات</div>
+          <div class="page-subtitle">آخر التحديثات والتنبيهات</div>
+        </div>
+      </div>
+      <div class="notif-list" id="notif-list"></div>
+    </div>
+
+    <!-- ====== CREATE TASK (ADMIN) ====== -->
+    <div class="page" id="page-create-task">
+      <div class="page-header">
+        <div>
+          <div class="page-title">➕ إنشاء مهمة جديدة</div>
+          <div class="page-subtitle">أضف مهمة دراسية للطلاب</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="form-field form-full">
+            <label>عنوان المهمة</label>
+            <input type="text" id="task-title" placeholder="مثال: حل تمارين الفصل الثالث">
+          </div>
+          <div class="form-field form-full">
+            <label>وصف المهمة</label>
+            <textarea id="task-desc" placeholder="تفاصيل المهمة وما المطلوب من الطالب..."></textarea>
+          </div>
+          <div class="form-field">
+            <label>المادة الدراسية</label>
+            <select id="task-subject">
+              <option value="math">الرياضيات</option>
+              <option value="physics">الفيزياء</option>
+              <option value="chemistry">الكيمياء</option>
+              <option value="biology">العلوم الطبيعية</option>
+              <option value="arabic">اللغة العربية</option>
+              <option value="french">اللغة الفرنسية</option>
+              <option value="english">اللغة الإنجليزية</option>
+              <option value="history">التاريخ</option>
+              <option value="geo">الجغرافيا</option>
+              <option value="philosophy">الفلسفة</option>
+              <option value="sport">التربية البدنية</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>مدة الإنجاز (بالدقائق)</label>
+            <input type="number" id="task-duration" value="60" min="5" max="1440" placeholder="60">
+          </div>
+          <div class="form-field">
+            <label>الأولوية</label>
+            <select id="task-priority">
+              <option value="normal">عادية</option>
+              <option value="important">مهمة</option>
+              <option value="urgent">عاجلة</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>النقاط المكتسبة</label>
+            <input type="number" id="task-points" value="10" min="1" max="100">
+          </div>
+          <div class="form-full" style="display:flex;justify-content:flex-end;gap:8px;margin-top:0.5rem">
+            <button class="btn-create" onclick="createTask()">
+              <i class="fas fa-plus"></i> إنشاء المهمة ونشرها
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== STUDENTS (ADMIN) ====== -->
+    <div class="page" id="page-students">
+      <div class="page-header">
+        <div>
+          <div class="page-title">👥 إدارة الطلاب</div>
+          <div class="page-subtitle">إدارة حسابات الطلاب وصلاحياتهم</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="student-list" id="admin-students-list"></div>
+      </div>
+    </div>
+
+    <!-- ====== WARNINGS (ADMIN) ====== -->
+    <div class="page" id="page-warnings">
+      <div class="page-header">
+        <div>
+          <div class="page-title">⚠️ الإنذارات والعقوبات</div>
+          <div class="page-subtitle">متابعة الطلاب المقصّرين</div>
+        </div>
+      </div>
+      <div class="card">
+        <table class="warnings-table">
+          <thead>
+            <tr>
+              <th>الطالب</th>
+              <th>المهمة</th>
+              <th>تاريخ الإنذار</th>
+              <th>إجمالي الإنذارات</th>
+              <th>الحالة</th>
+              <th>الإجراء</th>
+            </tr>
+          </thead>
+          <tbody id="warnings-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ====== PROFILE ====== -->
+    <div class="page" id="page-profile">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profile-avatar">ط</div>
+        <div class="profile-info">
+          <h2 id="profile-name">الطالب</h2>
+          <p id="profile-email">student@school.dz</p>
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <div class="val" id="p-completed">0</div>
+              <div class="lbl">مهام منجزة</div>
+            </div>
+            <div class="profile-stat">
+              <div class="val" id="p-points">0</div>
+              <div class="lbl">النقاط</div>
+            </div>
+            <div class="profile-stat">
+              <div class="val" id="p-warnings">0</div>
+              <div class="lbl">إنذارات</div>
+            </div>
+            <div class="profile-stat">
+              <div class="val" id="p-rank">#-</div>
+              <div class="lbl">الترتيب</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem">📈 التقدم في المواد</div>
+          <div id="profile-subjects"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem">🏅 شاراتي</div>
+          <div id="profile-badges"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== SETTINGS ====== -->
+    <div class="page" id="page-settings">
+      <div class="page-header">
+        <div>
+          <div class="page-title">⚙️ الإعدادات</div>
+          <div class="page-subtitle">تخصيص تجربتك في المنصة</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1.5rem">الحساب</div>
+          <div class="form-field" style="margin-bottom:1rem">
+            <label>الاسم الكامل</label>
+            <input type="text" id="settings-name">
+          </div>
+          <div class="form-field" style="margin-bottom:1rem">
+            <label>البريد الإلكتروني</label>
+            <input type="text" id="settings-email">
+          </div>
+          <button class="btn-create" onclick="saveSettings()"><i class="fas fa-save"></i> حفظ التغييرات</button>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1.5rem">الإشعارات</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+              <input type="checkbox" checked style="width:16px;height:16px"> إشعار عند نشر مهمة جديدة
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+              <input type="checkbox" checked style="width:16px;height:16px"> إشعار قبل انتهاء المهلة بـ 10 دقائق
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+              <input type="checkbox" style="width:16px;height:16px"> إشعار عند إضافة إنذار
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app-screen -->
+
+<!-- MODAL: Task Completions -->
+<div class="modal-overlay" id="modal-completions">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-completions')"><i class="fas fa-times"></i></button>
+    <div class="modal-title">✅ قائمة المنجزين</div>
+    <div id="modal-completions-list"></div>
+  </div>
+</div>
+
+<script>
+// ===================== DATA =====================
+let state = {
+  currentUser: null,
+  users: [
+    { id: 'admin', name: 'الأستاذ كريم', email: 'admin@school.dz', pass: '1234', role: 'admin', warnings: 0, points: 0, frozen: false, completions: [] },
+  ],
+  tasks: [],
+  warnings: [],
+  subjectImages: {},
+  notifications: [
+    { icon: 'fas fa-bell', color: 'rgba(108,99,255,0.12)', iconColor: 'var(--accent)', text: 'مرحباً بك في نظام تسيير الطلاب!', time: 'الآن' },
+    { icon: 'fas fa-star', color: 'rgba(247,151,30,0.12)', iconColor: 'var(--gold)', text: 'أكمل مهامك في الوقت المحدد لتتصدر لوحة الشرف', time: 'منذ لحظة' },
+    { icon: 'fas fa-info-circle', color: 'rgba(30,144,255,0.12)', iconColor: 'var(--info)', text: '3 إنذارات = تجميد الحساب تلقائياً', time: 'منذ دقيقة' },
+  ]
+};
+
+const SUBJECTS = {
+  math: { name: 'الرياضيات', css: 's-math', icon: 'fas fa-square-root-alt' },
+  physics: { name: 'الفيزياء', css: 's-physics', icon: 'fas fa-atom' },
+  chemistry: { name: 'الكيمياء', css: 's-chemistry', icon: 'fas fa-flask' },
+  biology: { name: 'العلوم الطبيعية', css: 's-biology', icon: 'fas fa-leaf' },
+  arabic: { name: 'اللغة العربية', css: 's-arabic', icon: 'fas fa-pen-nib' },
+  french: { name: 'اللغة الفرنسية', css: 's-french', icon: 'fas fa-language' },
+  english: { name: 'اللغة الإنجليزية', css: 's-english', icon: 'fas fa-globe' },
+  history: { name: 'التاريخ', css: 's-history', icon: 'fas fa-scroll' },
+  geo: { name: 'الجغرافيا', css: 's-geo', icon: 'fas fa-map-marked-alt' },
+  philosophy: { name: 'الفلسفة', css: 's-philosophy', icon: 'fas fa-brain' },
+  sport: { name: 'التربية البدنية', css: 's-sport', icon: 'fas fa-running' },
+};
+
+const SCHEDULE = {
+  'الأحد': [
+    { sub: 'math', time: '08:00' }, { sub: 'arabic', time: '09:00' },
+    { sub: 'physics', time: '10:00' }, { sub: 'french', time: '11:00' }
+  ],
+  'الاثنين': [
+    { sub: 'chemistry', time: '08:00' }, { sub: 'english', time: '09:00' },
+    { sub: 'history', time: '10:00' }
+  ],
+  'الثلاثاء': [
+    { sub: 'math', time: '08:00' }, { sub: 'biology', time: '09:00' },
+    { sub: 'philosophy', time: '10:00' }, { sub: 'geo', time: '11:00' }
+  ],
+  'الأربعاء': [
+    { sub: 'arabic', time: '08:00' }, { sub: 'french', time: '09:00' },
+    { sub: 'sport', time: '10:00' }
+  ],
+  'الخميس': [
+    { sub: 'physics', time: '08:00' }, { sub: 'math', time: '09:00' },
+    { sub: 'english', time: '10:00' }
+  ],
+  'الجمعة': [
+    { sub: 'chemistry', time: '09:00' }, { sub: 'biology', time: '10:00' }
+  ],
+};
+
+let taskTimers = {};
+let activeSubjectFilter = 'all';
+
+
+// ===================== USER FEATURES =====================
+function createPersonalTask() {
+  const title = document.getElementById('user-task-title').value.trim();
+  const desc = document.getElementById('user-task-desc').value.trim();
+  const subject = document.getElementById('user-task-subject').value;
+  const duration = parseInt(document.getElementById('user-task-duration').value || '30');
+
+  if(!title || !desc){
+    showToast('يرجى ملء معلومات المهمة', 'warning');
+    return;
+  }
+
+  const now = Date.now();
+
+  const task = {
+    id: 'personal_' + now,
+    title,
+    desc,
+    subject,
+    duration,
+    points: 5,
+    priority: 'normal',
+    createdAt: now,
+    endAt: now + (duration * 60000),
+    completions: [],
+    status: 'active'
+  };
+
+  state.tasks.unshift(task);
+
+  document.getElementById('user-task-title').value = '';
+  document.getElementById('user-task-desc').value = '';
+  document.getElementById('user-task-duration').value = 30;
+
+  renderTasks();
+  refreshAll();
+
+  showToast('تمت إضافة المهمة بنجاح', 'success');
+}
+
+function saveSubjectImage(){
+  const input = document.getElementById('subject-image-input');
+  const subject = document.getElementById('subject-image-select').value;
+
+  if(!input.files[0]){
+    showToast('اختر صورة أولاً', 'warning');
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    state.subjectImages[subject] = e.target.result;
+    showToast('تم حفظ الصورة بنجاح', 'success');
+  };
+
+  reader.readAsDataURL(input.files[0]);
+}
+
+function showSubjectImage(){
+  const subject = document.getElementById('subject-image-select').value;
+  const image = document.getElementById('subject-preview-image');
+
+  if(!state.subjectImages[subject]){
+    showToast('لا توجد صورة محفوظة لهذه المادة', 'danger');
+    return;
+  }
+
+  image.src = state.subjectImages[subject];
+  image.style.display = 'block';
+
+  showToast('تم عرض الصورة', 'success');
+}
+
+
+// ===================== AUTH =====================
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => {
+    t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
+  });
+  document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const user = state.users.find(u => u.email === email && u.pass === pass);
+  if (!user) { showToast('البريد أو كلمة المرور غير صحيحة', 'danger'); return; }
+  loginUser(user);
+}
+
+function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const cls = document.getElementById('reg-class').value;
+  if (!name || !email || !pass) { showToast('يرجى ملء جميع الحقول', 'warning'); return; }
+  if (state.users.find(u => u.email === email)) { showToast('هذا البريد مسجّل مسبقاً', 'danger'); return; }
+  const newUser = {
+    id: 'u_' + Date.now(), name, email, pass, role: 'student',
+    class: cls, warnings: 0, points: 0, frozen: false, completions: []
+  };
+  state.users.push(newUser);
+  showToast('تم إنشاء حسابك بنجاح 🎉', 'success');
+  setTimeout(() => loginUser(newUser), 800);
+}
+
+function loginUser(user) {
+  state.currentUser = user;
+  document.getElementById('auth-screen').classList.remove('active');
+  document.getElementById('app-screen').classList.add('active');
+  document.getElementById('sidebar-name').textContent = user.name;
+  document.getElementById('sidebar-role').textContent = user.role === 'admin' ? 'أستاذ / مالك' : 'طالب';
+  document.getElementById('sidebar-avatar').textContent = user.name[0];
+  if (user.role === 'admin') document.getElementById('admin-nav').style.display = 'block';
+  else document.getElementById('admin-nav').style.display = 'none';
+  document.getElementById('dash-greeting').textContent = `أهلاً، ${user.name} 👋`;
+  document.getElementById('current-date').textContent = new Date().toLocaleDateString('ar-DZ', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  loadDemoTasks();
+  refreshAll();
+  showToast(`مرحباً ${user.name}!`, 'success');
+}
+
+function doLogout() {
+  state.currentUser = null;
+  clearAllTimers();
+  document.getElementById('app-screen').classList.remove('active');
+  document.getElementById('auth-screen').classList.add('active');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value = '';
+}
+
+// ===================== DEMO DATA =====================
+function loadDemoTasks() {
+  if (state.tasks.length > 0) return;
+  const now = Date.now();
+  state.tasks = [
+    { id: 't1', title: 'حل تمارين المشتقات', desc: 'حل التمارين من 1 إلى 15 في الكتاب المدرسي الصفحة 87', subject: 'math', duration: 45, points: 15, priority: 'urgent', createdAt: now - 60000, endAt: now + 45*60000, completions: [], status: 'active' },
+    { id: 't2', title: 'قراءة فصل الضوء', desc: 'قراءة الفصل الثالث حول انعكاس وانكسار الضوء', subject: 'physics', duration: 30, points: 10, priority: 'important', createdAt: now - 300000, endAt: now + 30*60000, completions: [], status: 'active' },
+    { id: 't3', title: 'كتابة مقال حول التلوث', desc: 'كتابة مقال 300 كلمة حول تلوث البيئة بالعربية', subject: 'arabic', duration: 60, points: 20, priority: 'normal', createdAt: now - 600000, endAt: now + 60*60000, completions: [], status: 'active' },
+    { id: 't4', title: 'تمارين المعادلات الكيميائية', desc: 'موازنة المعادلات من الورقة الموزعة رقم 4', subject: 'chemistry', duration: 40, points: 12, priority: 'normal', createdAt: now - 1200000, endAt: now + 20*60000, completions: [], status: 'active' },
+    { id: 't5', title: 'ملخص الحرب العالمية الثانية', desc: 'إعداد ملخص لا يتجاوز صفحتين عن أسباب ونتائج الحرب', subject: 'history', duration: 90, points: 18, priority: 'important', createdAt: now - 2400000, endAt: now + 90*60000, completions: [], status: 'active' },
+  ];
+  // Add demo students
+  ['أحمد بلحاج','فاطمة زهراء','يوسف معاشي','آمنة قرشي','محمد أمين'].forEach((name,i) => {
+    const id = 'demo_' + i;
+    if (!state.users.find(u => u.id === id)) {
+      state.users.push({ id, name, email: `student${i}@school.dz`, pass: '1234', role: 'student', class: 'السنة الثالثة ثانوي', warnings: i < 2 ? i : 0, points: (5-i)*15 + Math.floor(Math.random()*20), frozen: i === 3, completions: i < 3 ? [state.tasks[0].id, state.tasks[1].id].slice(0, 3-i) : [] });
+    }
+  });
+  // Add demo warnings
+  state.warnings = [
+    { userId: 'demo_3', taskId: 't2', taskTitle: 'قراءة فصل الضوء', date: new Date().toLocaleDateString('ar-DZ'), count: 3 },
+    { userId: 'demo_1', taskId: 't1', taskTitle: 'حل تمارين المشتقات', date: new Date().toLocaleDateString('ar-DZ'), count: 1 },
+  ];
+}
+
+// ===================== NAVIGATION =====================
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.trim().includes(getPageLabel(page))) n.classList.add('active');
+  });
+  renderPage(page);
+}
+
+function getPageLabel(page) {
+  const m = { dashboard:'لوحة', tasks:'المهام', subjects:'المواد', schedule:'الجدول', leaderboard:'الشرف', notifications:'الإشعارات', 'create-task':'إنشاء', students:'إدارة', warnings:'الإنذارات', profile:'ملفي', settings:'الإعدادات' };
+  return m[page] || '';
+}
+
+function renderPage(page) {
+  const fn = { dashboard: renderDashboard, tasks: renderTasks, subjects: renderSubjects, schedule: renderSchedule, leaderboard: renderLeaderboard, notifications: renderNotifications, students: renderStudents, warnings: renderWarnings, profile: renderProfile, settings: renderSettings };
+  if (fn[page]) fn[page]();
+}
+
+function refreshAll() {
+  updateBadges();
+  renderDashboard();
+}
+
+function updateBadges() {
+  const activeTasks = state.tasks.filter(t => t.status === 'active').length;
+  document.getElementById('tasks-badge').textContent = activeTasks;
+  const warnings = state.warnings.length;
+  document.getElementById('warn-badge').textContent = warnings;
+}
+
+// ===================== DASHBOARD =====================
+function renderDashboard() {
+  const user = state.currentUser;
+  const myCompletions = user.completions ? user.completions.length : 0;
+  document.getElementById('stat-total-tasks').textContent = state.tasks.length;
+  document.getElementById('stat-completed').textContent = myCompletions;
+  document.getElementById('stat-active').textContent = state.tasks.filter(t => t.status === 'active').length;
+  document.getElementById('stat-my-warns').textContent = user.warnings;
+
+  const dl = document.getElementById('dash-tasks-list');
+  const recent = state.tasks.slice(0,4);
+  dl.innerHTML = recent.length ? recent.map(t => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f8f9ff;border-radius:10px">
+      <div class="task-subject ${SUBJECTS[t.subject].css}" style="padding:4px 10px;font-size:11px;font-weight:600;border-radius:20px">${SUBJECTS[t.subject].name}</div>
+      <div style="flex:1;font-size:13px;font-weight:600">${t.title}</div>
+      <div style="font-size:11px;color:var(--muted)">${t.points} نقطة</div>
+    </div>
+  `).join('') : '<div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد مهام بعد</p></div>';
+
+  renderMiniLeaderboard();
+}
+
+function renderMiniLeaderboard() {
+  const sorted = [...state.users].filter(u => u.role !== 'admin').sort((a,b) => b.points - a.points).slice(0,5);
+  const max = sorted[0]?.points || 1;
+  document.getElementById('dash-leaderboard').innerHTML = sorted.map((u,i) => `
+    <div class="lb-item">
+      <div class="lb-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':'other'}">${i+1}</div>
+      <div class="s-avatar" style="width:32px;height:32px;font-size:12px">${u.name[0]}</div>
+      <div>
+        <div style="font-size:13px;font-weight:600">${u.name}</div>
+        <div class="lb-bar" style="width:100px"><div class="lb-bar-fill" style="width:${Math.round(u.points/max*100)}%"></div></div>
+      </div>
+      <div class="lb-score">${u.points}</div>
+    </div>
+  `).join('') || '<div class="empty-state"><p>لا يوجد طلاب مسجلون بعد</p></div>';
+}
+
+// ===================== TASKS =====================
+let currentSubFilter = 'all';
+function renderTasks() {
+  buildSubjectTabs();
+  renderTasksGrid(currentSubFilter);
+}
+
+function buildSubjectTabs() {
+  const usedSubs = [...new Set(state.tasks.map(t => t.subject))];
+  const container = document.getElementById('task-subject-tabs');
+  container.innerHTML = `<div class="subject-tab ${currentSubFilter==='all'?'active':''}" onclick="filterTasksBySubject('all',this)">الكل (${state.tasks.length})</div>`;
+  usedSubs.forEach(s => {
+    const count = state.tasks.filter(t => t.subject === s).length;
+    const tab = document.createElement('div');
+    tab.className = 'subject-tab' + (currentSubFilter === s ? ' active' : '');
+    tab.textContent = `${SUBJECTS[s].name} (${count})`;
+    tab.onclick = () => filterTasksBySubject(s, tab);
+    container.appendChild(tab);
+  });
+}
+
+function filterTasksBySubject(sub, el) {
+  currentSubFilter = sub;
+  document.querySelectorAll('#task-subject-tabs .subject-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderTasksGrid(sub);
+}
+
+function renderTasksGrid(sub) {
+  const user = state.currentUser;
+  const tasks = sub === 'all' ? state.tasks : state.tasks.filter(t => t.subject === sub);
+  const grid = document.getElementById('tasks-grid');
+  if (!tasks.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-inbox"></i><p>لا توجد مهام في هذه المادة</p></div>'; return; }
+
+  grid.innerHTML = tasks.map(t => {
+    const isExpired = Date.now() > t.endAt;
+    const didComplete = user.completions && user.completions.includes(t.id);
+    const isFrozen = user.frozen;
+    const remaining = Math.max(0, t.endAt - Date.now());
+    const urgentClass = isExpired ? 'expired' : remaining < 300000 ? 'urgent' : remaining < 600000 ? 'warning' : 'ok';
+    const priorityColors = { urgent: '#ff4757', important: '#ffa502', normal: '#2ed573' };
+    const priorityLabels = { urgent: '🔴 عاجلة', important: '🟡 مهمة', normal: '🟢 عادية' };
+
+    return `
+    <div class="task-card ${isExpired?'expired':''} ${didComplete?'completed-by-me':''}" id="tcard-${t.id}">
+      ${isFrozen ? `<div class="frozen-overlay"><i class="fas fa-snowflake"></i><p>حسابك مجمّد</p></div>` : ''}
+      <div class="task-top">
+        <span class="task-subject ${SUBJECTS[t.subject].css}"><i class="${SUBJECTS[t.subject].icon}"></i> ${SUBJECTS[t.subject].name}</span>
+        <span class="task-priority" style="color:${priorityColors[t.priority]}">${priorityLabels[t.priority]}</span>
+      </div>
+      <div class="task-title">${t.title}</div>
+      <div class="task-desc">${t.desc}</div>
+      <div class="task-timer">
+        <i class="fas fa-hourglass-half" style="color:var(--accent)"></i>
+        <div>
+          <div class="timer-digits ${urgentClass}" id="timer-${t.id}">${formatTime(remaining)}</div>
+          <div style="font-size:10px;color:var(--muted)">الوقت المتبقي</div>
+        </div>
+        <div style="margin-right:auto;text-align:left">
+          <div style="font-size:11px;color:var(--muted)">النقاط</div>
+          <div style="font-size:16px;font-weight:700;color:var(--gold)">${t.points} ⭐</div>
+        </div>
+      </div>
+      <div class="task-footer">
+        ${didComplete
+          ? `<div class="done-badge"><i class="fas fa-check-circle"></i> أنجزت هذه المهمة</div>`
+          : isExpired
+          ? `<button class="btn-done" disabled><i class="fas fa-times-circle"></i> انتهت المهلة</button>`
+          : `<button class="btn-done" onclick="markDone('${t.id}')" ${isFrozen?'disabled':''}><i class="fas fa-check"></i> تم الإنجاز</button>`
+        }
+        <button class="action-btn info" onclick="showCompletions('${t.id}')">
+          <i class="fas fa-users"></i> ${t.completions.length}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  startTimers(tasks);
+}
+
+function startTimers(tasks) {
+  clearAllTimers();
+  tasks.forEach(t => {
+    if (Date.now() < t.endAt) {
+      taskTimers[t.id] = setInterval(() => updateTimer(t), 1000);
+    }
+  });
+}
+
+function clearAllTimers() { Object.values(taskTimers).forEach(clearInterval); taskTimers = {}; }
+
+function updateTimer(task) {
+  const el = document.getElementById('timer-' + task.id);
+  if (!el) { clearInterval(taskTimers[task.id]); return; }
+  const remaining = Math.max(0, task.endAt - Date.now());
+  const urgentClass = remaining === 0 ? 'expired' : remaining < 300000 ? 'urgent' : remaining < 600000 ? 'warning' : 'ok';
+  el.textContent = formatTime(remaining);
+  el.className = 'timer-digits ' + urgentClass;
+  if (remaining === 0) {
+    clearInterval(taskTimers[task.id]);
+    task.status = 'expired';
+    handleExpiredTask(task);
+  }
+}
+
+function handleExpiredTask(task) {
+  const incompleteStudents = state.users.filter(u => u.role === 'student' && !(u.completions || []).includes(task.id) && !u.frozen);
+  incompleteStudents.forEach(u => {
+    u.warnings = (u.warnings || 0) + 1;
+    state.warnings.push({ userId: u.id, taskId: task.id, taskTitle: task.title, date: new Date().toLocaleDateString('ar-DZ'), count: u.warnings });
+    if (u.warnings >= 3) { u.frozen = true; addNotification('fas fa-snowflake', 'rgba(30,144,255,0.12)', 'var(--info)', `تم تجميد حساب ${u.name} (3 إنذارات)`); }
+    else { addNotification('fas fa-exclamation-triangle', 'rgba(255,165,2,0.12)', 'var(--warning)', `إنذار للطالب ${u.name} - ${task.title}`); }
+  });
+  updateBadges();
+  if (state.currentUser?.role !== 'admin') renderTasks();
+}
+
+function markDone(taskId) {
+  const user = state.currentUser;
+  const task = state.tasks.find(t => t.id === taskId);
+  if (!task || Date.now() > task.endAt) { showToast('انتهت مهلة هذه المهمة', 'danger'); return; }
+  if (user.completions && user.completions.includes(taskId)) return;
+  user.completions = user.completions || [];
+  user.completions.push(taskId);
+  task.completions.push(user.id);
+  user.points = (user.points || 0) + task.points;
+  addNotification('fas fa-check-circle', 'rgba(46,213,115,0.12)', 'var(--success)', `أنجزت مهمة: ${task.title} (+${task.points} نقطة)`);
+  showToast(`🎉 أحسنت! +${task.points} نقطة`, 'success');
+  renderTasks();
+  refreshAll();
+}
+
+function showCompletions(taskId) {
+  const task = state.tasks.find(t => t.id === taskId);
+  const completedUsers = state.users.filter(u => task.completions.includes(u.id));
+  document.getElementById('modal-completions-list').innerHTML = completedUsers.length
+    ? completedUsers.map(u => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f8f9ff;border-radius:10px;margin-bottom:8px">
+          <div class="s-avatar" style="width:36px;height:36px">${u.name[0]}</div>
+          <div><div style="font-size:13px;font-weight:600">${u.name}</div><div style="font-size:11px;color:var(--muted)">${u.class || ''}</div></div>
+          <span class="badge badge-success" style="margin-right:auto"><i class="fas fa-check"></i> أنجز</span>
+        </div>`).join('')
+    : '<div class="empty-state"><i class="fas fa-users"></i><p>لا أحد أنجز هذه المهمة بعد</p></div>';
+  document.getElementById('modal-completions').classList.add('active');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// ===================== SUBJECTS =====================
+function renderSubjects() {
+  const user = state.currentUser;
+  const container = document.getElementById('subjects-content');
+  container.innerHTML = `
+    <div class="subjects-tabs" style="margin-bottom:1.5rem">
+      ${Object.entries(SUBJECTS).map(([key, sub]) => `
+        <div class="subject-tab" onclick="showSubjectDetail('${key}',this)">
+          <i class="${sub.icon}"></i> ${sub.name}
+        </div>`).join('')}
+    </div>
+    <div id="subject-detail">
+      <div class="three-col">
+        ${Object.entries(SUBJECTS).map(([key, sub]) => {
+          const tasks = state.tasks.filter(t => t.subject === key);
+          const done = tasks.filter(t => user.completions && user.completions.includes(t.id)).length;
+          const pct = tasks.length ? Math.round(done/tasks.length*100) : 0;
+          return `
+          <div class="card" style="cursor:pointer" onclick="showPage('tasks');filterTasksBySubject('${key}',document.querySelector('[data-sub=${key}]'))">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+              <div class="task-subject ${sub.css}" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;font-size:18px"><i class="${sub.icon}"></i></div>
+              <div>
+                <div style="font-weight:700;font-size:14px">${sub.name}</div>
+                <div style="font-size:11px;color:var(--muted)">${tasks.length} مهمة</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px">
+              <span>${done} / ${tasks.length} منجز</span><span>${pct}%</span>
+            </div>
+            <div class="progress"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+// ===================== SCHEDULE =====================
+function renderSchedule() {
+  const days = Object.keys(SCHEDULE);
+  const container = document.getElementById('schedule-content');
+  container.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(${days.length},1fr);gap:8px">
+      ${days.map(day => `
+        <div>
+          <div style="text-align:center;font-size:12px;font-weight:700;color:var(--muted);padding:8px;background:var(--bg);border-radius:8px;margin-bottom:6px">${day}</div>
+          ${SCHEDULE[day].map(slot => `
+            <div class="schedule-slot ${SUBJECTS[slot.sub].css}">
+              <i class="${SUBJECTS[slot.sub].icon}"></i><br>${SUBJECTS[slot.sub].name}<br>
+              <span style="font-weight:400;opacity:0.7">${slot.time}</span>
+            </div>`).join('')}
+        </div>`).join('')}
+    </div>`;
+}
+
+// ===================== LEADERBOARD =====================
+function renderLeaderboard() {
+  const sorted = [...state.users].filter(u => u.role !== 'admin').sort((a,b) => b.points - a.points);
+  const max = sorted[0]?.points || 1;
+  document.getElementById('lb-list').innerHTML = sorted.map((u,i) => `
+    <div class="lb-item">
+      <div class="lb-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':'other'}">${i+1}</div>
+      <div class="s-avatar">${u.name[0]}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">${u.name} ${u.frozen?'❄️':''}</div>
+        <div class="lb-bar"><div class="lb-bar-fill" style="width:${Math.round(u.points/max*100)}%"></div></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">${(u.completions||[]).length} مهمة منجزة · ${u.warnings} إنذار</div>
+      </div>
+      <div class="lb-score">${u.points} ⭐</div>
+    </div>`).join('') || '<div class="empty-state"><p>لا يوجد طلاب مسجلون بعد</p></div>';
+
+  const totalStudents = state.users.filter(u => u.role !== 'admin').length;
+  const totalPoints = state.users.reduce((a,u) => a + (u.points||0), 0);
+  const totalTasks = state.tasks.length;
+  const totalCompletions = state.users.reduce((a,u) => a + (u.completions||[]).length, 0);
+  document.getElementById('lb-stats').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${[
+        {label:'إجمالي الطلاب', val:totalStudents, icon:'fas fa-users', c:'blue'},
+        {label:'إجمالي النقاط', val:totalPoints, icon:'fas fa-star', c:'purple'},
+        {label:'المهام المنشورة', val:totalTasks, icon:'fas fa-tasks', c:'green'},
+        {label:'مجموع الإنجازات', val:totalCompletions, icon:'fas fa-check-circle', c:'red'},
+      ].map(s => `
+        <div class="stat-card ${s.c}" style="display:flex;align-items:center;gap:12px">
+          <div class="stat-icon ${s.c}"><i class="${s.icon}"></i></div>
+          <div><div class="stat-value">${s.val}</div><div class="stat-label">${s.label}</div></div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ===================== NOTIFICATIONS =====================
+function renderNotifications() {
+  document.getElementById('notif-badge').textContent = 0;
+  document.getElementById('notif-list').innerHTML = state.notifications.map(n => `
+    <div class="notif-item">
+      <div class="notif-icon" style="background:${n.color}"><i class="${n.icon}" style="color:${n.iconColor}"></i></div>
+      <div>
+        <div class="notif-text">${n.text}</div>
+        <div class="notif-time">${n.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+function addNotification(icon, color, iconColor, text) {
+  state.notifications.unshift({ icon, color, iconColor, text, time: 'الآن' });
+  const badge = document.getElementById('notif-badge');
+  badge.textContent = parseInt(badge.textContent||0) + 1;
+}
+
+// ===================== ADMIN: CREATE TASK =====================
+function createTask() {
+  const title = document.getElementById('task-title').value.trim();
+  const desc = document.getElementById('task-desc').value.trim();
+  const subject = document.getElementById('task-subject').value;
+  const duration = parseInt(document.getElementById('task-duration').value);
+  const priority = document.getElementById('task-priority').value;
+  const points = parseInt(document.getElementById('task-points').value);
+  if (!title || !desc) { showToast('يرجى ملء عنوان ووصف المهمة', 'warning'); return; }
+  const now = Date.now();
+  const task = { id: 't_' + now, title, desc, subject, duration, points, priority, createdAt: now, endAt: now + duration*60000, completions: [], status: 'active' };
+  state.tasks.unshift(task);
+  addNotification('fas fa-plus-circle', 'rgba(108,99,255,0.12)', 'var(--accent)', `مهمة جديدة: ${title}`);
+  showToast('✅ تم نشر المهمة بنجاح!', 'success');
+  document.getElementById('task-title').value = '';
+  document.getElementById('task-desc').value = '';
+  updateBadges();
+}
+
+// ===================== ADMIN: STUDENTS =====================
+function renderStudents() {
+  const students = state.users.filter(u => u.role !== 'admin');
+  document.getElementById('admin-students-list').innerHTML = students.map(u => `
+    <div class="student-item">
+      <div class="s-avatar">${u.name[0]}</div>
+      <div>
+        <div class="s-name">${u.name}</div>
+        <div class="s-meta">${u.email} · ${u.class || 'غير محدد'}</div>
+      </div>
+      <div class="s-badges">
+        <span class="badge ${u.frozen ? 'badge-frozen' : u.warnings >= 2 ? 'badge-danger' : u.warnings === 1 ? 'badge-warning' : 'badge-success'}">
+          ${u.frozen ? '❄️ مجمّد' : u.warnings + ' إنذار'}
+        </span>
+        <span class="badge badge-muted">${u.points || 0} ⭐</span>
+        <span class="badge badge-success">${(u.completions||[]).length} إنجاز</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        ${u.frozen
+          ? `<button class="action-btn success" onclick="unfreezeUser('${u.id}')"><i class="fas fa-unlock"></i> رفع التجميد</button>`
+          : `<button class="action-btn warning" onclick="freezeUser('${u.id}')"><i class="fas fa-snowflake"></i> تجميد</button>`
+        }
+        <button class="action-btn danger" onclick="addWarningManual('${u.id}')"><i class="fas fa-exclamation"></i> إنذار</button>
+        <button class="action-btn info" onclick="resetWarnings('${u.id}')"><i class="fas fa-redo"></i> إعادة</button>
+      </div>
+    </div>`).join('') || '<div class="empty-state"><i class="fas fa-users"></i><p>لا يوجد طلاب مسجلون بعد</p></div>';
+}
+
+function freezeUser(id) {
+  const u = state.users.find(u => u.id === id);
+  if (u) { u.frozen = true; showToast(`تم تجميد حساب ${u.name}`, 'warning'); renderStudents(); }
+}
+function unfreezeUser(id) {
+  const u = state.users.find(u => u.id === id);
+  if (u) { u.frozen = false; u.warnings = 0; showToast(`تم رفع التجميد عن ${u.name}`, 'success'); renderStudents(); }
+}
+function addWarningManual(id) {
+  const u = state.users.find(u => u.id === id);
+  if (u) {
+    u.warnings = (u.warnings || 0) + 1;
+    if (u.warnings >= 3) u.frozen = true;
+    state.warnings.push({ userId: u.id, taskId: 'manual', taskTitle: 'إنذار يدوي', date: new Date().toLocaleDateString('ar-DZ'), count: u.warnings });
+    showToast(`تم إضافة إنذار لـ ${u.name} (${u.warnings}/3)`, u.frozen ? 'danger' : 'warning');
+    updateBadges(); renderStudents();
+  }
+}
+function resetWarnings(id) {
+  const u = state.users.find(u => u.id === id);
+  if (u) { u.warnings = 0; u.frozen = false; showToast(`تم إعادة ضبط إنذارات ${u.name}`, 'success'); renderStudents(); }
+}
+
+// ===================== ADMIN: WARNINGS =====================
+function renderWarnings() {
+  document.getElementById('warnings-tbody').innerHTML = state.warnings.map(w => {
+    const u = state.users.find(u => u.id === w.userId);
+    if (!u) return '';
+    return `
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px">
+          <div class="s-avatar" style="width:32px;height:32px;font-size:12px">${u.name[0]}</div> ${u.name}
+        </div></td>
+        <td>${w.taskTitle}</td>
+        <td>${w.date}</td>
+        <td>
+          <div style="display:flex;gap:4px">
+            ${[1,2,3].map(n => `<div style="width:20px;height:20px;border-radius:50%;background:${n <= (u.warnings||0) ? 'var(--danger)' : 'var(--bg)'};border:1px solid var(--border)"></div>`).join('')}
+          </div>
+        </td>
+        <td><span class="badge ${u.frozen ? 'badge-frozen' : u.warnings >= 2 ? 'badge-danger' : 'badge-warning'}">${u.frozen ? '❄️ مجمّد' : u.warnings + '/3 إنذار'}</span></td>
+        <td>
+          ${u.frozen
+            ? `<button class="action-btn success" onclick="unfreezeUser('${u.id}');renderWarnings()"><i class="fas fa-unlock"></i> رفع</button>`
+            : `<button class="action-btn danger" onclick="freezeUser('${u.id}');renderWarnings()"><i class="fas fa-ban"></i> تجميد</button>`
+          }
+        </td>
+      </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted)">لا توجد إنذارات حتى الآن</td></tr>';
+}
+
+// ===================== PROFILE =====================
+function renderProfile() {
+  const user = state.currentUser;
+  const sorted = [...state.users].filter(u => u.role !== 'admin').sort((a,b) => b.points - a.points);
+  const rank = sorted.findIndex(u => u.id === user.id) + 1;
+  document.getElementById('profile-avatar').textContent = user.name[0];
+  document.getElementById('profile-name').textContent = user.name;
+  document.getElementById('profile-email').textContent = user.email;
+  document.getElementById('p-completed').textContent = (user.completions||[]).length;
+  document.getElementById('p-points').textContent = user.points || 0;
+  document.getElementById('p-warnings').textContent = user.warnings || 0;
+  document.getElementById('p-rank').textContent = rank > 0 ? '#' + rank : '#-';
+
+  const ps = document.getElementById('profile-subjects');
+  ps.innerHTML = Object.entries(SUBJECTS).map(([key, sub]) => {
+    const tasks = state.tasks.filter(t => t.subject === key);
+    const done = tasks.filter(t => (user.completions||[]).includes(t.id)).length;
+    const pct = tasks.length ? Math.round(done/tasks.length*100) : 0;
+    return `
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+          <span style="font-weight:600"><i class="${sub.icon}"></i> ${sub.name}</span>
+          <span style="color:var(--muted)">${done}/${tasks.length} (${pct}%)</span>
+        </div>
+        <div class="progress"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>
+      </div>`;
+  }).join('');
+
+  const badges = [];
+  if ((user.completions||[]).length >= 1) badges.push({ icon: '🎯', label: 'أول إنجاز' });
+  if ((user.completions||[]).length >= 5) badges.push({ icon: '⭐', label: 'نجم الإنجاز' });
+  if (user.points >= 50) badges.push({ icon: '🏅', label: 'جامع النقاط' });
+  if (user.warnings === 0) badges.push({ icon: '✅', label: 'طالب ملتزم' });
+  if (rank === 1) badges.push({ icon: '🥇', label: 'الأول في القسم' });
+  const pb = document.getElementById('profile-badges');
+  pb.innerHTML = badges.length
+    ? `<div style="display:flex;flex-wrap:wrap;gap:10px">${badges.map(b => `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 16px;background:var(--bg);border-radius:12px;min-width:80px"><span style="font-size:28px">${b.icon}</span><span style="font-size:11px;font-weight:600;color:var(--muted)">${b.label}</span></div>`).join('')}</div>`
+    : '<div class="empty-state"><i class="fas fa-medal"></i><p>أنجز مهامك للحصول على شارات!</p></div>';
+}
+
+// ===================== SETTINGS =====================
+function renderSettings() {
+  document.getElementById('settings-name').value = state.currentUser.name;
+  document.getElementById('settings-email').value = state.currentUser.email;
+}
+
+function saveSettings() {
+  state.currentUser.name = document.getElementById('settings-name').value;
+  state.currentUser.email = document.getElementById('settings-email').value;
+  document.getElementById('sidebar-name').textContent = state.currentUser.name;
+  showToast('تم حفظ الإعدادات ✅', 'success');
+}
+
+// ===================== HELPERS =====================
+function formatTime(ms) {
+  if (ms <= 0) return '00:00:00';
+  const h = Math.floor(ms/3600000);
+  const m = Math.floor((ms%3600000)/60000);
+  const s = Math.floor((ms%60000)/1000);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function showToast(msg, type = '') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ===================== INIT =====================
+document.getElementById('current-date').textContent = new Date().toLocaleDateString('ar-DZ', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+</script>
+</body>
+</html>
